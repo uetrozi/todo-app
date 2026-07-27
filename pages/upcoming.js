@@ -1,4 +1,5 @@
 "use client";
+import { useEffect } from "react";
 import Layout from "@/components/Layout/Layout";
 import MainContainer from "@/components/Navigation/MainContainer";
 import TaskList from "@/components/TaskList/TaskList";
@@ -9,14 +10,16 @@ import AddTaskInput from "@/components/Task/AddTaskInput";
 
 const UpcomingPage = () => {
   const setActiveList = useTaskStore((state) => state.setActiveList);
-  setActiveList("TaskTango - Upcoming");
+  useEffect(() => {
+    setActiveList("TaskTango - Upcoming");
+  }, [setActiveList]);
 
   const {
     data: upcomingTasks,
     isLoading,
     error,
   } = useSWR("/api/tasks", async () =>
-    (await fetch("/api/status/upcoming")).json()
+    (await fetch("/api/status/upcoming")).json(),
   );
   if (!upcomingTasks) {
     return;

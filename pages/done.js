@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect } from "react";
 import Layout from "@/components/Layout/Layout";
 import MainContainer from "@/components/Navigation/MainContainer";
 import TaskList from "@/components/TaskList/TaskList";
@@ -9,7 +9,9 @@ import { useTaskStore } from "@/store";
 
 const DonePage = () => {
   const setActiveList = useTaskStore((state) => state.setActiveList);
-  setActiveList("TaskTango - Done");
+  useEffect(() => {
+    setActiveList("TaskTango - Done");
+  }, [setActiveList]);
 
   const {
     data: doneTasks,

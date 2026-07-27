@@ -24,14 +24,12 @@ const MONGODB_URI = normalizeMongoUri(process.env.MONGODB_URI);
 
 if (!MONGODB_URI) {
   throw new Error(
-    "Please define the MONGODB_URI environment variable inside .env.local"
+    "Please define the MONGODB_URI environment variable inside .env.local",
   );
 }
 
 if (!/^mongodb(\+srv)?:\/\//.test(MONGODB_URI)) {
-  throw new Error(
-    "MONGODB_URI must start with mongodb:// or mongodb+srv://"
-  );
+  throw new Error("MONGODB_URI must start with mongodb:// or mongodb+srv://");
 }
 
 /**

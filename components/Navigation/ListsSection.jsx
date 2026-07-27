@@ -4,6 +4,7 @@ import {
   RepeatClockIcon,
   HamburgerIcon,
 } from "@chakra-ui/icons";
+import Link from "next/link";
 import {
   List,
   ListItem,
@@ -21,7 +22,7 @@ export default function ListsSection() {
   let countingTasks = useTaskStore((state) => state.countingTasks);
 
   const numberOfDoneTasks = countingTasks.filter(
-    (task) => task.completed
+    (task) => task.completed,
   ).length;
   const numberOfUpcomingTasks = countingTasks.length - numberOfDoneTasks;
 
@@ -45,7 +46,7 @@ export default function ListsSection() {
               borderRadius="full"
               bg={activeList === "TaskTango - Home Page" ? "teal.400" : ""}
             >
-              <Box as="a" href="/" display="flex" alignItems="center">
+              <Box as={Link} href="/" display="flex" alignItems="center">
                 <ListIcon
                   as={HamburgerIcon}
                   marginRight={["0px", "8px"]}
@@ -69,7 +70,12 @@ export default function ListsSection() {
               borderRadius="full"
               bg={activeList === "TaskTango - Upcoming" ? "teal.400" : ""}
             >
-              <Box as="a" href="/upcoming" alignItems="center" display="flex">
+              <Box
+                as={Link}
+                href="/upcoming"
+                alignItems="center"
+                display="flex"
+              >
                 <ListIcon
                   as={RepeatClockIcon}
                   marginRight={["0px", "8px"]}
@@ -93,7 +99,7 @@ export default function ListsSection() {
               borderRadius="full"
               bg={activeList === "TaskTango - Done" ? "teal.400" : ""}
             >
-              <Box as="a" href="/done" alignItems="center" display="flex">
+              <Box as={Link} href="/done" alignItems="center" display="flex">
                 <ListIcon
                   as={CheckCircleIcon}
                   marginRight={["0px", "8px"]}
