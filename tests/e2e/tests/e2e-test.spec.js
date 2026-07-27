@@ -2,64 +2,147 @@ import randomItem from "./utils/utils";
 const { test, expect } = require("@playwright/test");
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("https://tasktango.vercel.app/");
-  await expect(page).toHaveTitle("TaskTango - Home Page");
+  const tasks = [];
+
+  await page.route("**/api/tasks", async (route) => {
+    const method = route.request().method();
+
+    if (method === "GET") {
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(tasks),
+      });
+    }
+
+    if (method === "POST") {
+      const payload = route.request().postDataJSON() || {};
+      const title = payload.title || "Untitled task";
+      const newTask = {
+        _id: `${Date.now()}-${Math.floor(Math.random() * 100000)}`,
+        title,
+        completed: false,
+      };
+      tasks.unshift(newTask);
+
+      return route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify(newTask),
+      });
+    }
+
+    return route.fulfill({ status: 405 });
+  });
+
+  await page.route("**/api/tasks/*", async (route) => {
+    const method = route.request().method();
+    const urlParts = route.request().url().split("/");
+    const taskId = urlParts[urlParts.length - 1];
+    const taskIndex = tasks.findIndex((task) => task._id === taskId);
+
+    if (method === "DELETE") {
+      if (taskIndex === -1) {
+        return route.fulfill({ status: 404 });
+      }
+      const [deletedTask] = tasks.splice(taskIndex, 1);
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(deletedTask),
+      });
+    }
+
+    if (method === "PUT" || method === "PATCH") {
+      if (taskIndex === -1) {
+        return route.fulfill({ status: 404 });
+      }
+
+      const payload = route.request().postDataJSON() || {};
+      if (Object.keys(payload).length === 0) {
+        tasks[taskIndex] = {
+          ...tasks[taskIndex],
+          completed: !tasks[taskIndex].completed,
+        };
+      }
+      if (typeof payload.completed === "boolean") {
+        tasks[taskIndex] = {
+          ...tasks[taskIndex],
+          completed: payload.completed,
+        };
+      }
+      if (typeof payload.title === "string") {
+        tasks[taskIndex] = { ...tasks[taskIndex], title: payload.title };
+      }
+
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(tasks[taskIndex]),
+      });
+    }
+
+    return route.fulfill({ status: 405 });
+  });
+
+  await page.route("**/api/status/done", async (route) => {
+    const doneTasks = tasks.filter((task) => task.completed);
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(doneTasks),
+    });
+  });
+
+  await page.route("**/api/status/upcoming", async (route) => {
+    const upcomingTasks = tasks.filter((task) => !task.completed);
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(upcomingTasks),
+    });
+  });
+
+  await page.goto("/");
+  await expect(page.getByPlaceholder("Add new task").first()).toBeVisible();
 });
 
 test.describe("New Todo", () => {
-  test("Add a task and verify it appears in the list", async ({ page }) => {
-    // Wait for the new task input to appear
-    const newTaskInput = await page.waitForSelector(
-      'input[placeholder="Add new task"]'
-    );
-    // Create 1st todo.
-    const todoText = randomItem();
+  test("Add a task and mark it done", async ({ page }) => {
+    const todoText = `${randomItem()}-${Date.now()}`;
+    const newTaskInput = page.getByPlaceholder("Add new task").first();
+
     await newTaskInput.fill(todoText);
     await newTaskInput.press("Enter");
 
-    //find task in the tasklist
-    const ListItem = page.getByRole("listitem").filter({ hasText: todoText });
+    const listItem = page
+      .getByRole("listitem")
+      .filter({ hasText: todoText })
+      .first();
+    await expect(listItem).toBeVisible();
 
-    //mark item as done and assert it's checked
-    const itemCheckbox = ListItem.locator(".chakra-checkbox__control");
-
-    //mark the latest as done even if there are multiple ones
-    await itemCheckbox.first().click();
-    expect(itemCheckbox).toBeTruthy();
-
-    //assert the toast is showing for task is done
+    await listItem.locator("label span").first().click();
     await expect(page.getByText("Task Done")).toBeVisible();
+
+    await listItem.getByRole("button", { name: "Delete a task" }).click();
+    await expect(page.getByText("Task deleted")).toBeVisible();
   });
 
-  test("Add a task and Delete it and verify it appears in the list", async ({
-    page,
-  }) => {
-    // Wait for the new task input to appear
-    const newTaskInput = await page.waitForSelector(
-      'input[placeholder="Add new task"]'
-    );
-    // Create 2st todo.
-    const todoText2 = randomItem();
-    await newTaskInput.fill(todoText2);
+  test("Add a task and delete it", async ({ page }) => {
+    const todoText = `${randomItem()}-${Date.now()}`;
+    const newTaskInput = page.getByPlaceholder("Add new task").first();
+
+    await newTaskInput.fill(todoText);
     await newTaskInput.press("Enter");
 
-    //find task in the tasklist
-    const ListItem2 = page.getByRole("listitem").filter({ hasText: todoText2 });
+    const listItem = page
+      .getByRole("listitem")
+      .filter({ hasText: todoText })
+      .first();
+    await expect(listItem).toBeVisible();
 
-    await ListItem2.waitFor();
-
-    //delete a task and assert it's deleted
-    const itemDeleteBtn = ListItem2.locator(
-      'button[aria-label="Delete a task"]'
-    );
-
-    await itemDeleteBtn.waitFor();
-
-    //delete on the latest added even if there are multiple ones
-    await itemDeleteBtn.first().click();
-
-    //assert the toast is showing for task is deleted
-    await expect(page.getByText("Task deleted")).toBeInViewport();
-    //await expect(ListItem2).not.toBeVisible();
+    await listItem.getByRole("button", { name: "Delete a task" }).click();
+    await expect(page.getByText("Task deleted")).toBeVisible();
+    await expect(listItem).toHaveCount(0);
   });
 });

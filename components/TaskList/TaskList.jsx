@@ -25,11 +25,10 @@ export default function TaskList({ tasks }) {
   const toast = useToast();
   const { mutate } = useSWRConfig();
   const funMode = useTaskStore((state) => state.funMode);
-  const confetti = new JSConfetti();
   const searchTerm = useTaskStore((state) => state.searchTerm);
 
   const filteredTasks = tasks.filter((task) =>
-    task.title.toLowerCase().includes(searchTerm.toLowerCase())
+    task.title.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const handleDeleteTask = async (taskId) => {
@@ -66,7 +65,7 @@ export default function TaskList({ tasks }) {
             return task;
           });
         },
-        true
+        true,
       );
       await editTask(taskId, nextValue);
 
@@ -81,6 +80,7 @@ export default function TaskList({ tasks }) {
       const task = await completedTask(taskId);
       if (task.completed) {
         if (funMode) {
+          const confetti = new JSConfetti();
           confetti.addConfetti({
             emojis: ["🌈", "🐻", "✏️", "✅", "🥳", "🎉", "🦄", "🐻", "🐼"],
             emojiSize: 150,
@@ -122,7 +122,6 @@ export default function TaskList({ tasks }) {
               ></Checkbox>
 
               <Editable
-                
                 defaultValue={task.title}
                 onSubmit={(nextValue) => handleEditTask(task._id, nextValue)}
               >

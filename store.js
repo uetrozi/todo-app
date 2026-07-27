@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 
 export const useTaskStore = create(
   persist(
-    (set) => ({
+    (set, get) => ({
       funMode: false,
       setupMode: true,
       finishSetup: () => set({ setupMode: false }),
@@ -16,26 +16,34 @@ export const useTaskStore = create(
           funMode: !state.funMode,
         })),
       countingTasks: [],
-      setCountingTasks: (newCountingTasks) => set({ countingTasks: newCountingTasks }),
+      setCountingTasks: (newCountingTasks) =>
+        set({ countingTasks: newCountingTasks }),
       countCompletedTasks: 0,
       countActiveTasks: 0,
 
       setCountCompletedTasks: () => {
-        const count = countingTasks.reduce((count, task) => (task.completed ? count + 1 : count), 0);
+        const { countingTasks } = get();
+        const count = countingTasks.reduce(
+          (count, task) => (task.completed ? count + 1 : count),
+          0,
+        );
         set({ countCompletedTasks: count });
       },
 
       setActiveTasks: () => {
-        const countCompleted = countingTasks.reduce((count, task) => (task.completed ? count + 1 : count), 0);
+        const { countingTasks } = get();
+        const countCompleted = countingTasks.reduce(
+          (count, task) => (task.completed ? count + 1 : count),
+          0,
+        );
         const active = countingTasks.length - countCompleted;
         set({ countActiveTasks: active });
       },
     }),
 
-
     {
       name: "task-tango-storage",
       storage: createJSONStorage(() => localStorage),
-    }
-  )
+    },
+  ),
 );
